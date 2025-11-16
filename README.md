@@ -6,9 +6,10 @@ Projet starter moderne utilisant **LangChain v1** avec un exemple d'agent mété
 
 - ✅ **LangChain v1** avec les nouvelles APIs (`init_chat_model`, `create_agent`, `@tool`)
 - ✅ **LangGraph** : Workflows personnalisés avec StateGraph (simple agent, research, supervisor)
+- ✅ **Subagents** : Système de délégation intelligent avec context quarantine
 - ✅ **Agent météo** d'exemple avec outils et mémoire
 - ✅ **Support MCP (Model Context Protocol)** : Intégration avec des serveurs MCP pour étendre les capacités de l'agent
-- ✅ **Structure modulaire** : config, models, prompts, tools, agents, memory, mcp, graphs
+- ✅ **Structure modulaire** : config, models, prompts, tools, agents, memory, mcp, graphs, subagents
 - ✅ **Interfaces multiples** : CLI et API HTTP (FastAPI)
 - ✅ **Gestion de la mémoire** avec checkpointer LangGraph
 - ✅ **Configuration** avec Pydantic Settings
@@ -35,6 +36,11 @@ langchain-starter/
 │  │  ├─ simple_agent.py    # Graph simple avec agent et outils
 │  │  ├─ research_agent.py  # Workflow de recherche multi-étapes
 │  │  └─ supervisor.py      # Pattern superviseur multi-agents
+│  ├─ subagents/
+│  │  ├─ base.py            # Classes de base (SubAgent, SubAgentResult)
+│  │  ├─ registry.py        # Registre des subagents
+│  │  ├─ coordinator.py     # Coordinateur avec délégation
+│  │  └─ specialized.py     # Subagents spécialisés prédéfinis
 │  ├─ memory/
 │  │  └─ base_memory.py     # Checkpointer (MemorySaver)
 │  ├─ mcp/
@@ -43,6 +49,7 @@ langchain-starter/
 │  ├─ cli.py                # Interface CLI agent météo
 │  ├─ mcp_cli.py            # Interface CLI agent MCP
 │  ├─ graph_cli.py          # Interface CLI graphes LangGraph
+│  ├─ subagent_cli.py       # Interface CLI système subagents
 │  └─ api/
 │     └─ server.py          # API FastAPI
 ├─ tests/
@@ -51,6 +58,7 @@ langchain-starter/
 ├─ mcp_servers.example.json # Configuration serveurs MCP
 ├─ MCP_SETUP.md             # Guide de configuration MCP
 ├─ LANGGRAPH_GUIDE.md       # Guide complet LangGraph
+├─ SUBAGENTS_GUIDE.md       # Guide complet subagents
 ├─ pyproject.toml
 └─ README.md
 ```
@@ -285,6 +293,68 @@ result = graph.invoke({"messages": [...]})
 ```
 
 📖 **Guide complet** : Voir [LANGGRAPH_GUIDE.md](LANGGRAPH_GUIDE.md) pour la documentation détaillée.
+
+## 🎯 Subagents - Délégation et Context Quarantine
+
+Ce projet implémente un système de **subagents** pour déléguer du travail et garder le contexte principal propre.
+
+### Pourquoi les subagents ?
+
+**Problème** : Quand un agent fait des recherches ou utilise des outils avec grandes sorties, le contexte se remplit de résultats intermédiaires.
+
+**Solution** : Les subagents isolent le travail détaillé. L'agent principal reçoit uniquement le résultat final concis.
+
+### Subagents disponibles
+
+Le projet fournit 5 subagents spécialisés :
+
+1. **research-specialist** : Recherche approfondie multi-sources
+2. **code-expert** : Expert Python (debug, optimisation, solutions)
+3. **data-analyst** : Analyse de données et extraction d'insights
+4. **professional-writer** : Rédaction professionnelle
+5. **quick-helper** : Assistant polyvalent pour tâches rapides
+
+### Utilisation
+
+```bash
+# Le coordinateur choisit automatiquement le meilleur subagent
+python -m app.subagent_cli "Recherche sur les tendances IA 2025"
+
+python -m app.subagent_cli "Crée une fonction de tri optimisée en Python"
+```
+
+### Dans le code
+
+```python
+from app.subagents.coordinator import delegate_task
+
+# Délégation automatique
+result = delegate_task("Recherche approfondie sur le machine learning quantique")
+print(result)
+
+# Avec subagents personnalisés
+from app.subagents.base import SubAgent
+from app.subagents.registry import register_subagent
+
+custom_subagent = SubAgent(
+    name="legal-expert",
+    description="Expert juridique pour analyse de contrats",
+    system_prompt="Tu es un expert juridique...",
+    tools=None
+)
+
+register_subagent(custom_subagent)
+result = delegate_task("Analyse ce contrat...")
+```
+
+### Avantages
+
+- ✅ **Context Quarantine** : Garde le contexte principal propre
+- ✅ **Spécialisation** : Chaque subagent a son expertise
+- ✅ **Automatique** : Le coordinateur choisit le bon subagent
+- ✅ **Extensible** : Créez vos propres subagents facilement
+
+📖 **Guide complet** : Voir [SUBAGENTS_GUIDE.md](SUBAGENTS_GUIDE.md) pour la documentation détaillée.
 
 ## 📚 Documentation
 
