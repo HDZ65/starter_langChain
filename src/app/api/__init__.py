@@ -1,0 +1,1 @@
+"""API HTTP avec FastAPI."""
