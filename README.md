@@ -5,9 +5,10 @@ Projet starter moderne utilisant **LangChain v1** avec un exemple d'agent mété
 ## 🚀 Fonctionnalités
 
 - ✅ **LangChain v1** avec les nouvelles APIs (`init_chat_model`, `create_agent`, `@tool`)
+- ✅ **LangGraph** : Workflows personnalisés avec StateGraph (simple agent, research, supervisor)
 - ✅ **Agent météo** d'exemple avec outils et mémoire
 - ✅ **Support MCP (Model Context Protocol)** : Intégration avec des serveurs MCP pour étendre les capacités de l'agent
-- ✅ **Structure modulaire** : config, models, prompts, tools, agents, memory, mcp
+- ✅ **Structure modulaire** : config, models, prompts, tools, agents, memory, mcp, graphs
 - ✅ **Interfaces multiples** : CLI et API HTTP (FastAPI)
 - ✅ **Gestion de la mémoire** avec checkpointer LangGraph
 - ✅ **Configuration** avec Pydantic Settings
@@ -26,13 +27,22 @@ langchain-starter/
 │  ├─ tools/
 │  │  └─ weather.py         # Outils météo avec @tool
 │  ├─ agents/
-│  │  └─ weather_agent.py   # Agent météo avec create_agent
+│  │  ├─ weather_agent.py   # Agent météo avec create_agent
+│  │  ├─ weather_graph.py   # Agent météo avec StateGraph
+│  │  └─ mcp_agent.py       # Agent MCP générique
+│  ├─ graphs/
+│  │  ├─ base.py            # États de base (AgentState, ResearchState, etc.)
+│  │  ├─ simple_agent.py    # Graph simple avec agent et outils
+│  │  ├─ research_agent.py  # Workflow de recherche multi-étapes
+│  │  └─ supervisor.py      # Pattern superviseur multi-agents
 │  ├─ memory/
 │  │  └─ base_memory.py     # Checkpointer (MemorySaver)
 │  ├─ mcp/
 │  │  ├─ __init__.py        # Client MCP
 │  │  └─ config.py          # Configuration serveurs MCP
-│  ├─ cli.py                # Interface CLI
+│  ├─ cli.py                # Interface CLI agent météo
+│  ├─ mcp_cli.py            # Interface CLI agent MCP
+│  ├─ graph_cli.py          # Interface CLI graphes LangGraph
 │  └─ api/
 │     └─ server.py          # API FastAPI
 ├─ tests/
@@ -40,6 +50,7 @@ langchain-starter/
 ├─ .env.example
 ├─ mcp_servers.example.json # Configuration serveurs MCP
 ├─ MCP_SETUP.md             # Guide de configuration MCP
+├─ LANGGRAPH_GUIDE.md       # Guide complet LangGraph
 ├─ pyproject.toml
 └─ README.md
 ```
@@ -205,6 +216,75 @@ Ce projet supporte le **Model Context Protocol (MCP)** développé par Anthropic
 - Et bien d'autres...
 
 📖 **Guide complet** : Voir [MCP_SETUP.md](MCP_SETUP.md) pour la documentation détaillée.
+
+## 🔀 LangGraph - Workflows Personnalisés
+
+Ce projet utilise **LangGraph** pour créer des workflows et agents avec contrôle total du flux d'exécution.
+
+### Graphes disponibles
+
+#### 1. Simple Agent
+Agent conversationnel basique avec cycle agent → tools → agent.
+
+```bash
+python -m app.graph_cli simple "Quel temps fait-il à Paris ?"
+```
+
+#### 2. Research Agent
+Workflow de recherche multi-étapes : analyze → generate_queries → search → synthesize.
+
+```bash
+python -m app.graph_cli research "Quelle est l'histoire de Python ?"
+```
+
+#### 3. Supervisor Multi-Agents
+Orchestration de 3 agents spécialisés (researcher, coder, writer) par un superviseur.
+
+```bash
+python -m app.graph_cli supervisor "Crée un tutoriel FastAPI complet"
+```
+
+### Utilisation dans le code
+
+```python
+# Simple agent
+from app.graphs.simple_agent import run_simple_agent
+from app.tools.weather import get_weather_for_location
+
+response = run_simple_agent(
+    "Quel temps fait-il ?",
+    tools=[get_weather_for_location]
+)
+
+# Research workflow
+from app.graphs.research_agent import run_research
+
+result = run_research("Ma question de recherche")
+print(result["answer"])
+
+# Supervisor
+from app.graphs.supervisor import run_supervisor
+
+result = run_supervisor("Crée un exemple d'API")
+print(result["final_result"])
+```
+
+### Créer votre propre graphe
+
+```python
+from langgraph.graph import StateGraph, END
+from app.graphs.base import AgentState
+
+workflow = StateGraph(AgentState)
+workflow.add_node("my_node", my_node_function)
+workflow.set_entry_point("my_node")
+workflow.add_edge("my_node", END)
+
+graph = workflow.compile()
+result = graph.invoke({"messages": [...]})
+```
+
+📖 **Guide complet** : Voir [LANGGRAPH_GUIDE.md](LANGGRAPH_GUIDE.md) pour la documentation détaillée.
 
 ## 📚 Documentation
 
