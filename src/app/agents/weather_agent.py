@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from langchain_core.tools import BaseTool
 from langgraph.prebuilt import create_agent
 
 from app.llm.models import get_default_model
@@ -18,9 +19,13 @@ class WeatherResponse:
     location: str | None = None
 
 
-def build_weather_agent():
+def build_weather_agent(use_mcp: bool = False, additional_tools: list[BaseTool] | None = None):
     """
     Construit l'agent météo avec ses outils et sa configuration.
+
+    Args:
+        use_mcp: Si True, charge et inclut les outils MCP disponibles
+        additional_tools: Liste optionnelle d'outils supplémentaires à ajouter
 
     Returns:
         Agent LangGraph configuré
@@ -28,7 +33,23 @@ def build_weather_agent():
     model = get_default_model()
     checkpointer = get_default_checkpointer()
 
+    # Outils de base pour la météo
     tools = [get_weather_for_location, get_user_location]
+
+    # Ajouter les outils MCP si demandé
+    if use_mcp:
+        try:
+            from app.mcp import get_mcp_tools
+
+            mcp_tools = get_mcp_tools()
+            tools.extend(mcp_tools)
+        except Exception as e:
+            # Ignorer silencieusement si MCP n'est pas disponible
+            pass
+
+    # Ajouter les outils supplémentaires
+    if additional_tools:
+        tools.extend(additional_tools)
 
     agent = create_agent(
         model=model,
@@ -42,18 +63,21 @@ def build_weather_agent():
     return agent
 
 
-def ask_weather(question: str, user_id: str = "1") -> WeatherResponse:
+def ask_weather(
+    question: str, user_id: str = "1", use_mcp: bool = False
+) -> WeatherResponse:
     """
     Pose une question à l'agent météo.
 
     Args:
         question: Question de l'utilisateur
         user_id: Identifiant de l'utilisateur
+        use_mcp: Si True, utilise les outils MCP disponibles
 
     Returns:
         WeatherResponse: Réponse structurée avec la météo
     """
-    agent = build_weather_agent()
+    agent = build_weather_agent(use_mcp=use_mcp)
 
     # Configuration avec thread_id pour la mémoire
     config = {

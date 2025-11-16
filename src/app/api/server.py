@@ -21,6 +21,7 @@ class WeatherRequest(BaseModel):
 
     question: str
     user_id: str = "1"
+    use_mcp: bool = False
 
 
 @app.get("/")
@@ -39,12 +40,14 @@ def get_weather(request: WeatherRequest) -> WeatherResponse:
     Interroge l'agent météo avec une question.
 
     Args:
-        request: Question et identifiant utilisateur
+        request: Question, identifiant utilisateur et option MCP
 
     Returns:
         WeatherResponse: Réponse structurée de l'agent
     """
-    response = ask_weather(question=request.question, user_id=request.user_id)
+    response = ask_weather(
+        question=request.question, user_id=request.user_id, use_mcp=request.use_mcp
+    )
     return response
 
 
